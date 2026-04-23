@@ -355,6 +355,32 @@ func (c *Client) GetProjectsStats() (*ProjectsStats, error) {
 	return &result, nil
 }
 
+// Project represents a project from the API
+type Project struct {
+	ID          string `json:"_id"`
+	Name        string `json:"name"`
+	Status      string `json:"status"`
+	Description string `json:"description"`
+}
+
+// GetProjects fetches list of projects
+func (c *Client) GetProjects() ([]Project, error) {
+	resp, err := c.Get("/projects?limit=100")
+	if err != nil {
+		return nil, err
+	}
+
+	var result struct {
+		Projects []Project `json:"projects"`
+		Total    int       `json:"total"`
+	}
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result.Projects, nil
+}
+
 func (c *Client) logRequest(req *http.Request, body []byte) {
 	headers := sanitizeHeaders(req.Header)
 	keys := make([]string, 0, len(headers))

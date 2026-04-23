@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -308,9 +310,10 @@ func attendanceTeamWorkHoursCmd(ctx *CommandContext) *cobra.Command {
 
 func attendanceActivityCmd(ctx *CommandContext) *cobra.Command {
 	activityCmd := &cobra.Command{
-		Use:   "activity",
-		Short: "Manage daily activities",
-		Long:  "Create, list, update, and delete daily activities",
+		Use:     "activity",
+		Aliases: []string{"act"},
+		Short:   "Manage daily activities",
+		Long:    "Create, list, update, and delete daily activities",
 	}
 
 	activityCmd.AddCommand(attendanceActivityCreateCmd(ctx))
@@ -322,7 +325,8 @@ func attendanceActivityCmd(ctx *CommandContext) *cobra.Command {
 }
 
 func attendanceActivityCreateCmd(ctx *CommandContext) *cobra.Command {
-	var date, activity string
+	var date, title, description, activityType, projectID string
+	var duration float64
 
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -333,12 +337,62 @@ func attendanceActivityCreateCmd(ctx *CommandContext) *cobra.Command {
 			}
 
 			date = defaultDateToday(date)
+			// Convert date to ISO format (YYYY-MM-DDT00:00:00.000Z)
+			isoDate := date + "T00:00:00.000Z"
 
 			client := api.NewClient(ctx.Config)
 
-			body := map[string]string{
-				"date":     date,
-				"activity": activity,
+			// If activity type is task and no project ID provided, show interactive picker
+			if activityType == "task" && projectID == "" {
+				projects, err := client.GetProjects()
+				if err != nil {
+					return fmt.Errorf("failed to fetch projects: %w", err)
+				}
+
+				if len(projects) == 0 {
+					return errors.New("no projects available. Please create a project first")
+				}
+
+				// Display project list
+				fmt.Println("Available projects:")
+				for i, p := range projects {
+					fmt.Printf("  [%d] %s (ID: %s)\n", i+1, p.Name, truncateText(p.ID, 12))
+				}
+
+				// Interactive selection
+				reader := bufio.NewReader(os.Stdin)
+				for {
+					fmt.Print("Select project number: ")
+					input, err := reader.ReadString('\n')
+					if err != nil {
+						return fmt.Errorf("failed to read input: %w", err)
+					}
+					input = strings.TrimSpace(input)
+
+					idx, err := strconv.Atoi(input)
+					if err != nil || idx < 1 || idx > len(projects) {
+						fmt.Printf("Invalid selection. Please enter a number between 1 and %d\n", len(projects))
+						continue
+					}
+
+					projectID = projects[idx-1].ID
+					fmt.Printf("Selected: %s\n", projects[idx-1].Name)
+					break
+				}
+			}
+
+			// Build request body matching API format
+			body := map[string]interface{}{
+				"title":        title,
+				"description":  description,
+				"duration":     duration,
+				"activityType": activityType,
+				"date":         isoDate,
+			}
+
+			// Only include projectId if provided (task type)
+			if projectID != "" {
+				body["projectId"] = projectID
 			}
 
 			resp, err := client.Post("/attendance/daily-activity", body)
@@ -358,8 +412,12 @@ func attendanceActivityCreateCmd(ctx *CommandContext) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&date, "date", "", "Activity date (YYYY-MM-DD)")
-	cmd.Flags().StringVar(&activity, "activity", "", "Activity description")
-	cmd.MarkFlagRequired("activity")
+	cmd.Flags().StringVar(&title, "title", "", "Activity title (required)")
+	cmd.Flags().StringVar(&description, "description", "", "Activity description")
+	cmd.Flags().Float64Var(&duration, "duration", 0, "Duration in hours")
+	cmd.Flags().StringVar(&activityType, "activity-type", "task", "Activity type (task, meeting, etc.)")
+	cmd.Flags().StringVar(&projectID, "project-id", "", "Project ID (optional, will prompt if not provided for tasks)")
+	cmd.MarkFlagRequired("title")
 
 	return cmd
 }
