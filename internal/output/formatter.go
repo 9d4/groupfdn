@@ -29,6 +29,11 @@ func NewFormatter(format Format) *Formatter {
 	return &Formatter{format: format}
 }
 
+// IsJSON returns true if the current format is JSON
+func (f *Formatter) IsJSON() bool {
+	return f.format == FormatJSON
+}
+
 // Print outputs data in the specified format
 func (f *Formatter) Print(data interface{}, headers []string) {
 	switch f.format {

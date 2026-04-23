@@ -172,21 +172,37 @@ func attendanceListCmd(ctx *CommandContext) *cobra.Command {
 
 			rows := make([]map[string]interface{}, 0, len(result.Records))
 			for _, record := range result.Records {
+				isJSON := ctx.Formatter.IsJSON()
 				row := map[string]interface{}{
-					"id":             truncateText(asString(record["_id"]), 12),
-					"date":           relativeTime(record["date"]),
-					"checkInTime":    relativeTime(record["checkInTime"]),
-					"checkOutTime":   relativeTime(record["checkOutTime"]),
-					"status":         record["status"],
-					"workType":       record["workType"],
-					"totalWorkHours": formatHoursOneDecimal(record["totalWorkHours"]),
+					"status":   record["status"],
+					"workType": record["workType"],
+				}
+
+				if isJSON {
+					row["id"] = record["_id"]
+					row["date"] = record["date"]
+					row["checkInTime"] = record["checkInTime"]
+					row["checkOutTime"] = record["checkOutTime"]
+					row["totalWorkHours"] = record["totalWorkHours"]
+				} else {
+					row["id"] = truncateText(asString(record["_id"]), 12)
+					row["date"] = relativeTime(record["date"])
+					row["checkInTime"] = relativeTime(record["checkInTime"])
+					row["checkOutTime"] = relativeTime(record["checkOutTime"])
+					row["totalWorkHours"] = formatHoursOneDecimal(record["totalWorkHours"])
 				}
 
 				if userRaw, ok := record["userId"]; ok {
 					if user, ok := userRaw.(map[string]interface{}); ok {
-						row["userName"] = truncateText(asString(user["name"]), 20)
-						row["userEmail"] = truncateText(asString(user["email"]), 24)
-						row["department"] = user["department"]
+						if isJSON {
+							row["userName"] = user["name"]
+							row["userEmail"] = user["email"]
+							row["department"] = user["department"]
+						} else {
+							row["userName"] = truncateText(asString(user["name"]), 20)
+							row["userEmail"] = truncateText(asString(user["email"]), 24)
+							row["department"] = user["department"]
+						}
 					}
 				}
 
@@ -195,7 +211,9 @@ func attendanceListCmd(ctx *CommandContext) *cobra.Command {
 
 			headers := []string{"id", "userName", "userEmail", "department", "date", "checkInTime", "checkOutTime", "status", "workType", "totalWorkHours"}
 			ctx.Formatter.Print(rows, headers)
-			fmt.Printf("Page: %d | Limit: %d | Records: %d\n", result.Page, result.Limit, len(result.Records))
+			if !ctx.Formatter.IsJSON() {
+				fmt.Printf("Page: %d | Limit: %d | Records: %d\n", result.Page, result.Limit, len(result.Records))
+			}
 
 			return nil
 		},
@@ -450,20 +468,36 @@ func attendanceActivityListCmd(ctx *CommandContext) *cobra.Command {
 			}
 
 			rows := make([]map[string]interface{}, 0, len(result))
+			isJSON := ctx.Formatter.IsJSON()
 			for _, item := range result {
 				row := map[string]interface{}{
-					"id":       truncateText(asString(item["_id"]), 12),
-					"title":    truncateText(activityTitle(item), 28),
-					"project":  truncateText(nestedMapString(item, "projectId", "name"), 16),
-					"type":     asString(item["activityType"]),
-					"duration": formatDurationHours(item["duration"]),
-					"user":     truncateText(nestedMapString(item, "userId", "name"), 18),
-					"date":     relativeTime(item["date"]),
-					"updated":  relativeTime(item["updatedAt"]),
+					"type": asString(item["activityType"]),
 				}
-				if verbose {
-					row["description"] = asString(item["description"])
-					row["created"] = relativeTime(item["createdAt"])
+
+				if isJSON {
+					row["id"] = item["_id"]
+					row["title"] = activityTitle(item)
+					row["project"] = nestedMapString(item, "projectId", "name")
+					row["duration"] = item["duration"]
+					row["user"] = nestedMapString(item, "userId", "name")
+					row["date"] = item["date"]
+					row["updated"] = item["updatedAt"]
+					if verbose {
+						row["description"] = asString(item["description"])
+						row["created"] = item["createdAt"]
+					}
+				} else {
+					row["id"] = truncateText(asString(item["_id"]), 12)
+					row["title"] = truncateText(activityTitle(item), 28)
+					row["project"] = truncateText(nestedMapString(item, "projectId", "name"), 16)
+					row["duration"] = formatDurationHours(item["duration"])
+					row["user"] = truncateText(nestedMapString(item, "userId", "name"), 18)
+					row["date"] = relativeTime(item["date"])
+					row["updated"] = relativeTime(item["updatedAt"])
+					if verbose {
+						row["description"] = asString(item["description"])
+						row["created"] = relativeTime(item["createdAt"])
+					}
 				}
 				rows = append(rows, row)
 			}
@@ -473,7 +507,9 @@ func attendanceActivityListCmd(ctx *CommandContext) *cobra.Command {
 				headers = []string{"id", "title", "description", "project", "type", "duration", "user", "date", "created", "updated"}
 			}
 			ctx.Formatter.Print(rows, headers)
-			fmt.Printf("Records: %d\n", len(rows))
+			if !isJSON {
+				fmt.Printf("Records: %d\n", len(rows))
+			}
 
 			return nil
 		},
