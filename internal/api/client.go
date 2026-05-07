@@ -381,6 +381,198 @@ func (c *Client) GetProjects() ([]Project, error) {
 	return result.Projects, nil
 }
 
+// TaskUser represents a user embedded in task responses
+type TaskUser struct {
+	ID    string `json:"_id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+// ActionItem represents a task action item
+type ActionItem struct {
+	ID    string `json:"_id"`
+	Title string `json:"title"`
+	Done  bool   `json:"done"`
+}
+
+// Task represents a task from the API
+type Task struct {
+	ID             string       `json:"_id"`
+	Title          string       `json:"title"`
+	Description    string       `json:"description"`
+	ProjectID      *Project     `json:"projectId"`
+	Assignees      []TaskUser   `json:"assignees"`
+	AssignedTo     *TaskUser    `json:"assignedTo"`
+	Priority       string       `json:"priority"`
+	Status         string       `json:"status"`
+	StartDate      string       `json:"startDate"`
+	DueDate        string       `json:"dueDate"`
+	EstimatedHours float64      `json:"estimatedHours"`
+	ActualHours    float64      `json:"actualHours"`
+	ActionItems    []ActionItem `json:"actionItems"`
+	CommentCount   int          `json:"commentCount"`
+	CreatedAt      string       `json:"createdAt"`
+	UpdatedAt      string       `json:"updatedAt"`
+}
+
+// TasksListResponse represents the response from listing tasks
+type TasksListResponse struct {
+	Tasks []Task `json:"tasks"`
+	Total int    `json:"total"`
+	Page  int    `json:"page"`
+	Limit int    `json:"limit"`
+}
+
+// CreateTaskRequest represents the payload to create a task
+type CreateTaskRequest struct {
+	Title        string   `json:"title"`
+	Description  string   `json:"description,omitempty"`
+	Priority     string   `json:"priority,omitempty"`
+	Status       string   `json:"status,omitempty"`
+	ProjectID    string   `json:"projectId,omitempty"`
+	Assignees    []string `json:"assignees,omitempty"`
+	AssignedTeam *string  `json:"assignedTeam"`
+	StartDate    string   `json:"startDate,omitempty"`
+	DueDate      string   `json:"dueDate,omitempty"`
+	EstimatedHours float64 `json:"estimatedHours,omitempty"`
+}
+
+// UpdateTaskRequest represents the payload to update a task
+type UpdateTaskRequest struct {
+	Title        string   `json:"title,omitempty"`
+	Description  string   `json:"description,omitempty"`
+	Priority     string   `json:"priority,omitempty"`
+	Status       string   `json:"status,omitempty"`
+	ProjectID    string   `json:"projectId,omitempty"`
+	Assignees    []string `json:"assignees,omitempty"`
+	AssignedTeam *string  `json:"assignedTeam"`
+	StartDate    string   `json:"startDate,omitempty"`
+	DueDate      string   `json:"dueDate,omitempty"`
+	EstimatedHours float64 `json:"estimatedHours,omitempty"`
+}
+
+// User represents a user from the API
+type User struct {
+	ID    string `json:"_id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+// UsersListResponse represents the response from listing users
+type UsersListResponse struct {
+	Users []User `json:"users"`
+	Total int    `json:"total"`
+}
+
+// GetTasks fetches tasks with optional filters
+func (c *Client) GetTasks(page, limit int, projectID, status string) (*TasksListResponse, error) {
+	endpoint := fmt.Sprintf("/tasks?page=%d&limit=%d", page, limit)
+	if projectID != "" {
+		endpoint += "&projectId=" + projectID
+	}
+	if status != "" {
+		endpoint += "&status=" + status
+	}
+
+	resp, err := c.Get(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	var result TasksListResponse
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// GetTask fetches a single task by ID
+func (c *Client) GetTask(id string) (*Task, error) {
+	resp, err := c.Get("/tasks/" + id)
+	if err != nil {
+		return nil, err
+	}
+
+	var result Task
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// CreateTask creates a new task
+func (c *Client) CreateTask(req *CreateTaskRequest) (*Task, error) {
+	resp, err := c.Post("/tasks", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result Task
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// UpdateTask updates an existing task
+func (c *Client) UpdateTask(id string, req *UpdateTaskRequest) (*Task, error) {
+	resp, err := c.Put("/tasks/"+id, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result Task
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// UpdateTaskStatus updates only the status of a task
+func (c *Client) UpdateTaskStatus(id, status string) (*Task, error) {
+	body := map[string]string{"status": status}
+	resp, err := c.Patch("/tasks/"+id+"/status", body)
+	if err != nil {
+		return nil, err
+	}
+
+	var result Task
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// DeleteTask deletes a task
+func (c *Client) DeleteTask(id string) error {
+	resp, err := c.Delete("/tasks/" + id)
+	if err != nil {
+		return err
+	}
+	return ParseResponse(resp, nil)
+}
+
+// GetUsers fetches list of users
+func (c *Client) GetUsers(limit int) (*UsersListResponse, error) {
+	endpoint := fmt.Sprintf("/users?limit=%d", limit)
+	resp, err := c.Get(endpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	var result UsersListResponse
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
 func (c *Client) logRequest(req *http.Request, body []byte) {
 	headers := sanitizeHeaders(req.Header)
 	keys := make([]string, 0, len(headers))

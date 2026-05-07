@@ -40,6 +40,7 @@ func init() {
 	// Add subcommands
 	RootCmd.AddCommand(commands.AuthCmd())
 	RootCmd.AddCommand(commands.AttendanceCmd())
+	RootCmd.AddCommand(commands.TasksCmd())
 
 	// Add alias
 	RootCmd.Aliases = []string{"fdn"}
