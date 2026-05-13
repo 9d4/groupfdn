@@ -164,6 +164,20 @@ func tasksCreateCmd(ctx *CommandContext) *cobra.Command {
 				return errors.New("not authenticated. Please login first")
 			}
 
+			// If title not provided via flag, open editor like git commit
+			if !c.Flags().Changed("title") {
+				content, err := openEditor(editorTemplate())
+				if err != nil {
+					return err
+				}
+				parsedTitle, parsedDesc, err := parseEditorContent(content)
+				if err != nil {
+					return err
+				}
+				title = parsedTitle
+				description = parsedDesc
+			}
+
 			client := api.NewClient(ctx.Config)
 
 			// Interactive project picker if not provided
@@ -249,7 +263,7 @@ func tasksCreateCmd(ctx *CommandContext) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&title, "title", "", "Task title (required)")
+	cmd.Flags().StringVar(&title, "title", "", "Task title")
 	cmd.Flags().StringVar(&description, "description", "", "Task description")
 	cmd.Flags().StringVar(&priority, "priority", "", "Priority (low, medium, high)")
 	cmd.Flags().StringVar(&status, "status", "", "Status (backlog, todo, in-progress, review, done, blocked)")
@@ -258,7 +272,6 @@ func tasksCreateCmd(ctx *CommandContext) *cobra.Command {
 	cmd.Flags().StringVar(&startDate, "start-date", "", "Start date (YYYY-MM-DD)")
 	cmd.Flags().StringVar(&dueDate, "due-date", "", "Due date (YYYY-MM-DD)")
 	cmd.Flags().Float64Var(&estimatedHours, "estimated-hours", 0, "Estimated hours")
-	cmd.MarkFlagRequired("title")
 
 	return cmd
 }

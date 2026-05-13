@@ -354,6 +354,20 @@ func attendanceActivityCreateCmd(ctx *CommandContext) *cobra.Command {
 				return errors.New("not authenticated. Please login first")
 			}
 
+			// If title not provided via flag, open editor like git commit
+			if !c.Flags().Changed("title") {
+				content, err := openEditor(editorTemplate())
+				if err != nil {
+					return err
+				}
+				parsedTitle, parsedDesc, err := parseEditorContent(content)
+				if err != nil {
+					return err
+				}
+				title = parsedTitle
+				description = parsedDesc
+			}
+
 			date = defaultDateToday(date)
 			// Convert date to ISO format (YYYY-MM-DDT00:00:00.000Z)
 			isoDate := date + "T00:00:00.000Z"
@@ -430,12 +444,11 @@ func attendanceActivityCreateCmd(ctx *CommandContext) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&date, "date", "", "Activity date (YYYY-MM-DD)")
-	cmd.Flags().StringVar(&title, "title", "", "Activity title (required)")
+	cmd.Flags().StringVar(&title, "title", "", "Activity title")
 	cmd.Flags().StringVar(&description, "description", "", "Activity description")
 	cmd.Flags().Float64Var(&duration, "duration", 0, "Duration in hours")
 	cmd.Flags().StringVar(&activityType, "activity-type", "task", "Activity type (task, meeting, etc.)")
 	cmd.Flags().StringVar(&projectID, "project-id", "", "Project ID (optional, will prompt if not provided for tasks)")
-	cmd.MarkFlagRequired("title")
 
 	return cmd
 }
