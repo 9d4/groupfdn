@@ -425,30 +425,30 @@ type TasksListResponse struct {
 
 // CreateTaskRequest represents the payload to create a task
 type CreateTaskRequest struct {
-	Title        string   `json:"title"`
-	Description  string   `json:"description,omitempty"`
-	Priority     string   `json:"priority,omitempty"`
-	Status       string   `json:"status,omitempty"`
-	ProjectID    string   `json:"projectId,omitempty"`
-	Assignees    []string `json:"assignees,omitempty"`
-	AssignedTeam *string  `json:"assignedTeam"`
-	StartDate    string   `json:"startDate,omitempty"`
-	DueDate      string   `json:"dueDate,omitempty"`
-	EstimatedHours float64 `json:"estimatedHours,omitempty"`
+	Title          string   `json:"title"`
+	Description    string   `json:"description,omitempty"`
+	Priority       string   `json:"priority,omitempty"`
+	Status         string   `json:"status,omitempty"`
+	ProjectID      string   `json:"projectId,omitempty"`
+	Assignees      []string `json:"assignees,omitempty"`
+	AssignedTeam   *string  `json:"assignedTeam"`
+	StartDate      string   `json:"startDate,omitempty"`
+	DueDate        string   `json:"dueDate,omitempty"`
+	EstimatedHours float64  `json:"estimatedHours,omitempty"`
 }
 
 // UpdateTaskRequest represents the payload to update a task
 type UpdateTaskRequest struct {
-	Title        string   `json:"title,omitempty"`
-	Description  string   `json:"description,omitempty"`
-	Priority     string   `json:"priority,omitempty"`
-	Status       string   `json:"status,omitempty"`
-	ProjectID    string   `json:"projectId,omitempty"`
-	Assignees    []string `json:"assignees,omitempty"`
-	AssignedTeam *string  `json:"assignedTeam"`
-	StartDate    string   `json:"startDate,omitempty"`
-	DueDate      string   `json:"dueDate,omitempty"`
-	EstimatedHours float64 `json:"estimatedHours,omitempty"`
+	Title          string    `json:"title,omitempty"`
+	Description    string    `json:"description,omitempty"`
+	Priority       string    `json:"priority,omitempty"`
+	Status         string    `json:"status,omitempty"`
+	ProjectID      string    `json:"projectId,omitempty"`
+	Assignees      *[]string `json:"assignees,omitempty"`
+	AssignedTeam   *string   `json:"assignedTeam,omitempty"`
+	StartDate      string    `json:"startDate,omitempty"`
+	DueDate        string    `json:"dueDate,omitempty"`
+	EstimatedHours float64   `json:"estimatedHours,omitempty"`
 }
 
 // User represents a user from the API

@@ -310,10 +310,12 @@ func tasksUpdateCmd(ctx *CommandContext) *cobra.Command {
 				req.ProjectID = projectID
 			}
 			if c.Flags().Changed("assignee") {
-				req.Assignees = []string{assignee}
+				assignees := []string{assignee}
+				req.Assignees = &assignees
 			}
 			if removeAssignee {
-				req.Assignees = []string{}
+				assignees := []string{}
+				req.Assignees = &assignees
 			}
 			if c.Flags().Changed("start-date") {
 				req.StartDate = startDate
