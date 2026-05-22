@@ -105,3 +105,26 @@ func parseEditorContent(content string) (title string, description string, err e
 func editorTemplate() string {
 	return "\n# Enter title on the first line above.\n# Leave a blank line, then add description below.\n# Lines starting with # will be ignored.\n"
 }
+
+// parseCommentEditorContent strips editor comments and returns the comment body.
+func parseCommentEditorContent(content string) (string, error) {
+	lines := strings.Split(content, "\n")
+	kept := make([]string, 0, len(lines))
+	for _, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "#") {
+			continue
+		}
+		kept = append(kept, line)
+	}
+
+	body := strings.TrimSpace(strings.Join(kept, "\n"))
+	if body == "" {
+		return "", fmt.Errorf("comment message is required")
+	}
+	return body, nil
+}
+
+// commentEditorTemplate returns the initial content template for comments.
+func commentEditorTemplate() string {
+	return "\n# Enter comment above. Lines starting with # will be ignored.\n"
+}

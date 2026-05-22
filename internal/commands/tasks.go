@@ -33,6 +33,7 @@ func TasksCmd() *cobra.Command {
 	tasksCmd.AddCommand(tasksStatusCmd(ctx))
 	tasksCmd.AddCommand(tasksDeleteCmd(ctx))
 	tasksCmd.AddCommand(tasksActionCmd(ctx))
+	tasksCmd.AddCommand(tasksCommentCmd(ctx))
 
 	return tasksCmd
 }
@@ -577,6 +578,105 @@ func tasksActionToggleCmd(ctx *CommandContext) *cobra.Command {
 	}
 }
 
+func tasksCommentCmd(ctx *CommandContext) *cobra.Command {
+	commentCmd := &cobra.Command{
+		Use:     "comment",
+		Aliases: []string{"comments", "c"},
+		Short:   "Manage task comments",
+	}
+
+	commentCmd.AddCommand(tasksCommentAddCmd(ctx))
+	commentCmd.AddCommand(tasksCommentEditCmd(ctx))
+
+	return commentCmd
+}
+
+func tasksCommentAddCmd(ctx *CommandContext) *cobra.Command {
+	var message string
+
+	cmd := &cobra.Command{
+		Use:     "add [task-id]",
+		Aliases: []string{"create", "new"},
+		Short:   "Add a comment to a task",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(c *cobra.Command, args []string) error {
+			if !ctx.Config.IsAuthenticated() {
+				return errors.New("not authenticated. Please login first")
+			}
+			if !c.Flags().Changed("message") {
+				content, err := openEditor(commentEditorTemplate())
+				if err != nil {
+					return err
+				}
+				message, err = parseCommentEditorContent(content)
+				if err != nil {
+					return err
+				}
+			}
+			if strings.TrimSpace(message) == "" {
+				return errors.New("comment message is required")
+			}
+
+			client := api.NewClient(ctx.Config)
+			comment, err := client.CreateTaskComment(args[0], message)
+			if err != nil {
+				return err
+			}
+
+			ctx.Formatter.PrintMessage("Comment added successfully")
+			ctx.Formatter.PrintMap(taskCommentToMap(comment))
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&message, "message", "m", "", "Comment content")
+
+	return cmd
+}
+
+func tasksCommentEditCmd(ctx *CommandContext) *cobra.Command {
+	var message string
+
+	cmd := &cobra.Command{
+		Use:     "edit [task-id] [comment-id]",
+		Aliases: []string{"update", "patch"},
+		Short:   "Edit a task comment",
+		Args:    cobra.ExactArgs(2),
+		RunE: func(c *cobra.Command, args []string) error {
+			if !ctx.Config.IsAuthenticated() {
+				return errors.New("not authenticated. Please login first")
+			}
+			if !c.Flags().Changed("message") {
+				content, err := openEditor(commentEditorTemplate())
+				if err != nil {
+					return err
+				}
+				message, err = parseCommentEditorContent(content)
+				if err != nil {
+					return err
+				}
+			}
+			if strings.TrimSpace(message) == "" {
+				return errors.New("comment message is required")
+			}
+
+			client := api.NewClient(ctx.Config)
+			comment, err := client.UpdateTaskComment(args[0], args[1], message)
+			if err != nil {
+				return err
+			}
+
+			ctx.Formatter.PrintMessage("Comment updated successfully")
+			ctx.Formatter.PrintMap(taskCommentToMap(comment))
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&message, "message", "m", "", "Comment content")
+
+	return cmd
+}
+
 // Helper functions
 
 func taskProjectName(task api.Task) string {
@@ -614,5 +714,16 @@ func taskToMap(task *api.Task) map[string]interface{} {
 		"commentCount":   task.CommentCount,
 		"createdAt":      task.CreatedAt,
 		"updatedAt":      task.UpdatedAt,
+	}
+}
+
+func taskCommentToMap(comment *api.TaskComment) map[string]interface{} {
+	return map[string]interface{}{
+		"_id":       comment.ID,
+		"taskId":    comment.TaskID,
+		"userId":    comment.UserID,
+		"content":   comment.Content,
+		"createdAt": comment.CreatedAt,
+		"updatedAt": comment.UpdatedAt,
 	}
 }

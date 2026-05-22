@@ -395,6 +395,21 @@ type ActionItem struct {
 	Done  bool   `json:"done"`
 }
 
+// TaskComment represents a task comment from the API
+type TaskComment struct {
+	ID        string   `json:"_id"`
+	TaskID    string   `json:"taskId"`
+	UserID    TaskUser `json:"userId"`
+	Content   string   `json:"content"`
+	CreatedAt string   `json:"createdAt"`
+	UpdatedAt string   `json:"updatedAt"`
+}
+
+// TaskCommentRequest represents the payload to create or update a task comment
+type TaskCommentRequest struct {
+	Content string `json:"content"`
+}
+
 // Task represents a task from the API
 type Task struct {
 	ID             string       `json:"_id"`
@@ -541,6 +556,38 @@ func (c *Client) UpdateTaskStatus(id, status string) (*Task, error) {
 	}
 
 	var result Task
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// CreateTaskComment creates a comment on a task
+func (c *Client) CreateTaskComment(taskID, content string) (*TaskComment, error) {
+	req := &TaskCommentRequest{Content: content}
+	resp, err := c.Post("/tasks/"+taskID+"/comments", req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result TaskComment
+	if err := ParseResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
+// UpdateTaskComment updates a task comment
+func (c *Client) UpdateTaskComment(taskID, commentID, content string) (*TaskComment, error) {
+	req := &TaskCommentRequest{Content: content}
+	resp, err := c.Patch("/tasks/"+taskID+"/comments/"+commentID, req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result TaskComment
 	if err := ParseResponse(resp, &result); err != nil {
 		return nil, err
 	}
